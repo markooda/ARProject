@@ -1,0 +1,177 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class WorldScrollController : MonoBehaviour
+{
+  public PlayerGroundFollower player;
+
+  [Header("Parallax Layers")]
+  public Transform foreground;
+  public Transform backgroundNear;
+  public Transform backgroundFar;
+
+  [Header("Parallax Speeds")]
+  public float scrollSpeed = 5f;
+  public float groundSpeed = 1f;
+  public float backgroundNearSpeed = 0.5f;
+  public float backgroundFarSpeed = 0.25f;
+
+  [Header("Movement Acceleration")]
+  public float acceleration = 8f;
+  public float maxSpeed = 1f; // absolute speed cap
+
+  private float currentSpeed = 0f;
+
+  private Vector2 moveInput;
+  private float prevMoveInput = 0f;
+
+  [Header("Look-Ahead Settings")]
+  public float lookDistance = 5f; // distance camera will move ahead
+  public float lookDuration = 0.5f; // seconds for forward phase
+
+  [Range(0f, 1f)]
+  public float lookAheadThreshold = 0.8f; // speed threshold
+  public float minTravelDistance = 1f; // distance player must travel before look-ahead
+
+  private float traveledDistance = 0f;
+
+  private bool inLookAhead = false;
+  private bool lookReturning = false;
+  private float lookProgress = 0f;
+  private float lookDir = 0f; // direction world was moving during look-ahead
+
+  private static MyInputs _controls;
+  public static MyInputs playerControls
+  {
+    get { return _controls ??= new MyInputs(); }
+    set { _controls = value; }
+  }
+
+  private void Awake()
+  {
+    playerControls.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
+    playerControls.Player.Move.canceled += ctx => moveInput = Vector2.zero;
+    playerControls.Player.Jump.performed += ctx => player.Jump();
+  }
+
+  private void OnEnable() => playerControls.Enable();
+
+  private void OnDisable() => playerControls.Disable();
+
+  void Update()
+  {
+    // ----------------------------
+    // LOOK-AHEAD MODE
+    // ----------------------------
+    if (inLookAhead)
+    {
+      RunLookAheadPhase();
+      return;
+    }
+
+    // ----------------------------
+    // INPUT RELEASE → TRIGGER LOOK-AHEAD
+    // ----------------------------
+    if (prevMoveInput != 0f && moveInput.x == 0f)
+    {
+      if (
+        Mathf.Abs(currentSpeed) >= maxSpeed * lookAheadThreshold
+        && traveledDistance >= minTravelDistance
+      )
+      {
+        StartLookAhead(prevMoveInput > 0 ? -1f : 1f); // prevMoveInput >0 → moving right → world moves left
+        traveledDistance = 0f;
+      }
+    }
+
+    // ----------------------------
+    // PLAYER INPUT → ACCELERATION
+    // ----------------------------
+    float inputX = -moveInput.x; // world scroll direction
+    float targetSpeed = inputX * maxSpeed;
+
+    if (Mathf.Abs(inputX) > 0.01f)
+      currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
+    else
+      currentSpeed = 0f; // no deceleration
+
+    // ----------------------------
+    // WORLD SCROLLING (while holding input)
+    // ----------------------------
+    float deltaX = currentSpeed * scrollSpeed * Time.deltaTime;
+
+    if ((deltaX > 0 && player.isCollidingRight) || (deltaX < 0 && player.isCollidingLeft))
+      deltaX = 0f;
+
+    ScrollWorld(deltaX);
+
+    // track absolute distance
+    traveledDistance += Mathf.Abs(deltaX);
+
+    prevMoveInput = moveInput.x;
+  }
+
+  // -------------------------------------------------------
+  // LOOK-AHEAD LOGIC (Forward phase + Return phase)
+  // -------------------------------------------------------
+  private void StartLookAhead(float dir)
+  {
+    inLookAhead = true;
+    lookReturning = false;
+    lookProgress = 0f;
+    lookDir = dir;
+  }
+
+  private void RunLookAheadPhase()
+  {
+    lookProgress += Time.deltaTime;
+    float t = Mathf.Clamp01(lookProgress / lookDuration);
+
+    // ease-out for forward, ease-in for return
+    float easedT = Mathf.Sin(t * Mathf.PI);
+
+    // compute deltaX
+    float deltaX =
+      (lookReturning ? -lookDir : lookDir)
+      * lookDistance
+      * easedT
+      * (Time.deltaTime / lookDuration);
+
+    // move world
+    ScrollWorld(deltaX);
+
+    // move player with world to keep them visually centered
+    player.transform.position += Vector3.right * deltaX;
+
+    if (lookProgress >= lookDuration)
+    {
+      if (!lookReturning)
+      {
+        // start return phase
+        lookReturning = true;
+        lookProgress = 0f;
+      }
+      else
+      {
+        // end look-ahead
+        inLookAhead = false;
+        lookReturning = false;
+      }
+    }
+  }
+
+  // -------------------------------------------------------
+  // PARALLAX HELPER
+  // -------------------------------------------------------
+  private void ScrollWorld(float deltaX)
+  {
+    if (foreground != null)
+      foreground.position += Vector3.right * deltaX * groundSpeed;
+
+    if (backgroundNear != null)
+      backgroundNear.position += Vector3.right * deltaX * backgroundNearSpeed;
+
+    if (backgroundFar != null)
+      backgroundFar.position += Vector3.right * deltaX * backgroundFarSpeed;
+  }
+}
