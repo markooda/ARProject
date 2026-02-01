@@ -1,6 +1,7 @@
 using UnityEngine;
 
-[ExecuteInEditMode]
+// [ExecuteInEditMode]
+[ExecuteAlways]
 public class ShowCollider : MonoBehaviour
 {
   void OnDrawGizmos()
@@ -30,6 +31,18 @@ public class ShowCollider : MonoBehaviour
       Vector3 bottom = capsule.center - Vector3.up * height / 2f;
       Gizmos.DrawWireSphere(top, capsule.radius);
       Gizmos.DrawWireSphere(bottom, capsule.radius);
+    }
+    else if (col is MeshCollider mesh)
+    {
+      Gizmos.color = Color.yellow;
+      Gizmos.matrix = transform.localToWorldMatrix;
+
+      Mesh m = mesh.sharedMesh;
+
+      if (m != null)
+      {
+        Gizmos.DrawWireMesh(m);
+      }
     }
   }
 }

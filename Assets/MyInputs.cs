@@ -111,9 +111,45 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""ResetTower"",
+                    ""name"": ""ResetGameObjects"",
                     ""type"": ""Button"",
                     ""id"": ""bfe3be42-bcf1-403f-8665-a810a04a5cdf"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Attack"",
+                    ""type"": ""Button"",
+                    ""id"": ""629d2a50-167b-41d2-8b18-287b6ed86bbd"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Block"",
+                    ""type"": ""Button"",
+                    ""id"": ""0620367e-07cf-476e-9b42-e0d3da887187"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""TestGyroscope"",
+                    ""type"": ""Value"",
+                    ""id"": ""e2913b02-753b-4ba7-befc-80d14b34c9a4"",
+                    ""expectedControlType"": ""Vector3"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""CenterPlayer"",
+                    ""type"": ""Button"",
+                    ""id"": ""ec0643ee-0ab6-46ef-8b4a-d0da9753cc28"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -178,6 +214,17 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
+                    ""id"": ""872f21fd-b245-483d-a543-70ef51489804"",
+                    ""path"": ""<Gamepad>/leftStick"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Move"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""f5c1c1f9-74e6-44ec-95d5-1ed352f2af7b"",
                     ""path"": ""<Keyboard>/space"",
                     ""interactions"": """",
@@ -194,7 +241,51 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""ResetTower"",
+                    ""action"": ""ResetGameObjects"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""488c6c81-fab9-4351-abae-d9070eb260d5"",
+                    ""path"": ""<Keyboard>/v"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Attack"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""1eca4a3a-4746-4e05-9266-7e1952bcdb98"",
+                    ""path"": ""<Keyboard>/b"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Block"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e8834760-9220-4575-80a3-72384b923009"",
+                    ""path"": ""<Gyroscope>/angularVelocity"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""TestGyroscope"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9876386b-a61a-4ef2-b789-5edfc4fd4e6b"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""CenterPlayer"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -207,7 +298,11 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
         m_Player = asset.FindActionMap("Player", throwIfNotFound: true);
         m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
         m_Player_Jump = m_Player.FindAction("Jump", throwIfNotFound: true);
-        m_Player_ResetTower = m_Player.FindAction("ResetTower", throwIfNotFound: true);
+        m_Player_ResetGameObjects = m_Player.FindAction("ResetGameObjects", throwIfNotFound: true);
+        m_Player_Attack = m_Player.FindAction("Attack", throwIfNotFound: true);
+        m_Player_Block = m_Player.FindAction("Block", throwIfNotFound: true);
+        m_Player_TestGyroscope = m_Player.FindAction("TestGyroscope", throwIfNotFound: true);
+        m_Player_CenterPlayer = m_Player.FindAction("CenterPlayer", throwIfNotFound: true);
     }
 
     ~@MyInputs()
@@ -290,7 +385,11 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
     private List<IPlayerActions> m_PlayerActionsCallbackInterfaces = new List<IPlayerActions>();
     private readonly InputAction m_Player_Move;
     private readonly InputAction m_Player_Jump;
-    private readonly InputAction m_Player_ResetTower;
+    private readonly InputAction m_Player_ResetGameObjects;
+    private readonly InputAction m_Player_Attack;
+    private readonly InputAction m_Player_Block;
+    private readonly InputAction m_Player_TestGyroscope;
+    private readonly InputAction m_Player_CenterPlayer;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -311,9 +410,25 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Jump => m_Wrapper.m_Player_Jump;
         /// <summary>
-        /// Provides access to the underlying input action "Player/ResetTower".
+        /// Provides access to the underlying input action "Player/ResetGameObjects".
         /// </summary>
-        public InputAction @ResetTower => m_Wrapper.m_Player_ResetTower;
+        public InputAction @ResetGameObjects => m_Wrapper.m_Player_ResetGameObjects;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Attack".
+        /// </summary>
+        public InputAction @Attack => m_Wrapper.m_Player_Attack;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/Block".
+        /// </summary>
+        public InputAction @Block => m_Wrapper.m_Player_Block;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/TestGyroscope".
+        /// </summary>
+        public InputAction @TestGyroscope => m_Wrapper.m_Player_TestGyroscope;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/CenterPlayer".
+        /// </summary>
+        public InputAction @CenterPlayer => m_Wrapper.m_Player_CenterPlayer;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -346,9 +461,21 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
             @Jump.started += instance.OnJump;
             @Jump.performed += instance.OnJump;
             @Jump.canceled += instance.OnJump;
-            @ResetTower.started += instance.OnResetTower;
-            @ResetTower.performed += instance.OnResetTower;
-            @ResetTower.canceled += instance.OnResetTower;
+            @ResetGameObjects.started += instance.OnResetGameObjects;
+            @ResetGameObjects.performed += instance.OnResetGameObjects;
+            @ResetGameObjects.canceled += instance.OnResetGameObjects;
+            @Attack.started += instance.OnAttack;
+            @Attack.performed += instance.OnAttack;
+            @Attack.canceled += instance.OnAttack;
+            @Block.started += instance.OnBlock;
+            @Block.performed += instance.OnBlock;
+            @Block.canceled += instance.OnBlock;
+            @TestGyroscope.started += instance.OnTestGyroscope;
+            @TestGyroscope.performed += instance.OnTestGyroscope;
+            @TestGyroscope.canceled += instance.OnTestGyroscope;
+            @CenterPlayer.started += instance.OnCenterPlayer;
+            @CenterPlayer.performed += instance.OnCenterPlayer;
+            @CenterPlayer.canceled += instance.OnCenterPlayer;
         }
 
         /// <summary>
@@ -366,9 +493,21 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
             @Jump.started -= instance.OnJump;
             @Jump.performed -= instance.OnJump;
             @Jump.canceled -= instance.OnJump;
-            @ResetTower.started -= instance.OnResetTower;
-            @ResetTower.performed -= instance.OnResetTower;
-            @ResetTower.canceled -= instance.OnResetTower;
+            @ResetGameObjects.started -= instance.OnResetGameObjects;
+            @ResetGameObjects.performed -= instance.OnResetGameObjects;
+            @ResetGameObjects.canceled -= instance.OnResetGameObjects;
+            @Attack.started -= instance.OnAttack;
+            @Attack.performed -= instance.OnAttack;
+            @Attack.canceled -= instance.OnAttack;
+            @Block.started -= instance.OnBlock;
+            @Block.performed -= instance.OnBlock;
+            @Block.canceled -= instance.OnBlock;
+            @TestGyroscope.started -= instance.OnTestGyroscope;
+            @TestGyroscope.performed -= instance.OnTestGyroscope;
+            @TestGyroscope.canceled -= instance.OnTestGyroscope;
+            @CenterPlayer.started -= instance.OnCenterPlayer;
+            @CenterPlayer.performed -= instance.OnCenterPlayer;
+            @CenterPlayer.canceled -= instance.OnCenterPlayer;
         }
 
         /// <summary>
@@ -424,11 +563,39 @@ public partial class @MyInputs: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnJump(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "ResetTower" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "ResetGameObjects" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnResetTower(InputAction.CallbackContext context);
+        void OnResetGameObjects(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Attack" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnAttack(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Block" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnBlock(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "TestGyroscope" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnTestGyroscope(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "CenterPlayer" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnCenterPlayer(InputAction.CallbackContext context);
     }
 }

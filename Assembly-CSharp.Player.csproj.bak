@@ -71,7 +71,28 @@
 		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Library/PackageCache/com.ptc.vuforia.engine@58134fb7b422/Vuforia/Scripts/DefaultInitializationErrorHandler.cs"/>
 		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/EnableStencilRenderer.cs"/>
 		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/Cheats.cs"/>
-		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/ShowCollider.cs"/></ItemGroup>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/ShowCollider.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/ToggleTowerVisibility.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/SkeletonController.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/VuforiaListener.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/PatrolBound.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/PlayerWeaponHitbox.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/EnemyWeaponHitbox.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/SkeletonHealthBarUI.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/SkeletonHealthBarRotate.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/PlayerHealthBarUI.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/TowerPlatform.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/HealthPowerUp.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/DamagePowerUp.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/SpikeTrap.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/MageHealthBarUI.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/MageController.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/EnemyController.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/FrostboltProjectile.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/SpeedPowerUp.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/GameState.cs"/>
+		<Compile Include="/mnt/c/Users/Sinth/Unity/BookBound/Assets/Scripts/MainMenuController.cs"/>
+		</ItemGroup>
   <ItemGroup>
     <None Include="Assets/StreamingAssets/Vuforia/ARGame.xml"/>
     <None Include="Assets/StreamingAssets/Vuforia/VuforiaMars_Images.xml"/>

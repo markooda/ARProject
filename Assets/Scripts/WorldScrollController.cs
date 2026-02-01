@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,13 +11,15 @@ public class WorldScrollController : MonoBehaviour
   public Transform backgroundNear;
   public Transform backgroundFar;
   public Transform backgroundVeryFar;
+  public Transform baseGround;
 
   [Header("Parallax Speeds")]
-  public float scrollSpeed = 5f;
   public float groundSpeed = 1f;
   public float backgroundNearSpeed = 0.5f;
   public float backgroundFarSpeed = 0.25f;
   public float backgroundVeryFarSpeed = 0.0125f;
+  public float backgroundVeryFarVerticalSpeed = 0.4f;
+  private float scrollSpeed;
 
   [Header("Movement Acceleration")]
   public float acceleration = 8f;
@@ -49,6 +52,15 @@ public class WorldScrollController : MonoBehaviour
   private float initialOffsetDir = 0f;
   private float currentPlayerOffset = 0f;
 
+  private float lastMoveTime = 0f;
+
+  [Header("Tower Platform Settings")]
+  public float scrollSpeedVertical = 5f;
+  private float currentLevelZ = 0f;
+  private float targetLevelZ = 0f;
+
+  private TowerPlatform lastPlatform = null;
+
   private static MyInputs _controls;
   public static MyInputs playerControls
   {
@@ -58,39 +70,48 @@ public class WorldScrollController : MonoBehaviour
 
   private void Awake()
   {
+    scrollSpeed = player.movementSpeed;
+
     playerControls.Player.Move.performed += ctx =>
     {
-      player.animator.SetBool("isRunning", true);
       moveInput = ctx.ReadValue<Vector2>();
-
-      if (moveInput.x > 0)
-      {
-        player.transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
-      }
-      else if (moveInput.x < 0)
-      {
-        player.transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
-      }
+      player.Inputs.StartRunning(moveInput.x);
     };
     playerControls.Player.Move.canceled += ctx =>
     {
-      player.animator.SetBool("isRunning", false);
+      player.Inputs.StopRunning();
       moveInput = Vector2.zero;
     };
     playerControls.Player.Jump.performed += ctx =>
     {
-      player.Jump();
+      player.Inputs.PerformJump();
     };
 
-    playerControls.Player.ResetTower.performed += ctx => Cheats.Instance.ResetTower();
+    playerControls.Player.Attack.performed += ctx =>
+    {
+      player.Inputs.PerformAttack();
+    };
+
+    playerControls.Player.Block.performed += ctx =>
+    {
+      player.Inputs.PerformBlock();
+    };
+
+    playerControls.Player.ResetGameObjects.performed += ctx => Cheats.Instance.ResetGameObjects();
+    playerControls.Player.CenterPlayer.performed += ctx => Cheats.Instance.CenterPlayer();
   }
 
   private void OnEnable() => playerControls.Enable();
 
   private void OnDisable() => playerControls.Disable();
 
-  void Update()
+  void FixedUpdate()
   {
+    // moved speed control to player
+    if (!Mathf.Approximately(scrollSpeed, player.movementSpeed))
+    {
+      scrollSpeed = player.movementSpeed;
+    }
     // bouncy camera but doesnt really look good :(
     if (inLookAhead)
     {
@@ -109,7 +130,11 @@ public class WorldScrollController : MonoBehaviour
     }
 
     // input release -> return camera offset to baseline
-    if (prevMoveInput != 0f && Mathf.Abs(moveInput.x) < 0.01f)
+    if (
+      (prevMoveInput != 0f && Mathf.Abs(moveInput.x) < 0.01f)
+      || player.willCollideLeft
+      || player.willCollideRight
+    )
     {
       if (inputOffsetActive && !inputReturning)
       {
@@ -136,19 +161,64 @@ public class WorldScrollController : MonoBehaviour
     }
 
     if (Mathf.Abs(inputX) > 0.01f)
-      currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
+    {
+      currentSpeed = Mathf.MoveTowards(
+        currentSpeed,
+        targetSpeed,
+        acceleration * Time.fixedDeltaTime
+      );
+
+      lastMoveTime = Time.time;
+    }
     else
       currentSpeed = 0f;
 
-    // deltaX for world scrolling
-    float deltaX = currentSpeed * scrollSpeed * Time.deltaTime;
+    // fix for bug where player gets offset from initial position due to collider overlap correction
+    float offsetX = player.playerOffsetX;
+    if (
+      Time.time - lastMoveTime > 0.5f
+      && Mathf.Abs(offsetX) > 0.01f
+      && !inputReturning
+      && currentPlayerOffset == 0f
+    )
+    {
+      Debug.Log("offsetX: " + offsetX);
+      float maxStep = maxSpeed * Time.fixedDeltaTime;
+      float newOffsetX = Mathf.MoveTowards(offsetX, 0f, maxStep);
+      float step = newOffsetX - offsetX;
 
-    if ((deltaX > 0 && player.isCollidingRight) || (deltaX < 0 && player.isCollidingLeft))
+      player.transform.position += Vector3.right * step;
+      ScrollWorld(step);
+    }
+
+    // switch animation to fast running
+    if (Mathf.Abs(currentSpeed) > maxSpeed / 2)
+    {
+      player.animator.SetBool("isRunningFast", true);
+    }
+    else
+    {
+      player.animator.SetBool("isRunningFast", false);
+    }
+
+    // deltaX for world scrolling
+    float deltaX = currentSpeed * scrollSpeed * Time.fixedDeltaTime;
+
+    if ((deltaX < 0 && player.willCollideRight) || (deltaX > 0 && player.willCollideLeft))
+    {
       deltaX = 0f;
+      // allow player to build up momentum while running against a wall for easier jumps
+      // but obly to one third of max allowed speed
+      currentSpeed = Mathf.Min(currentSpeed, maxSpeed * 0.3f);
+      Debug.Log("World scroller player soon colliding");
+    }
+
+    TowerMovementVertical();
 
     if (player.isTouchingTower)
     {
       GameObject tower = GameObject.FindGameObjectWithTag("TowerFull");
+      Debug.Log("Tower found: " + tower);
 
       // rotate the tower instead of movement - fake movement
       if (Mathf.Abs(moveInput.x) > 0.01f)
@@ -160,6 +230,8 @@ public class WorldScrollController : MonoBehaviour
           rot.eulerAngles.z - deltaX * 20f
         );
         tower.transform.localRotation = newRot;
+
+        Debug.Log("Rotating tower??");
       }
 
       if (inputOffsetActive && !inputReturning)
@@ -167,36 +239,10 @@ public class WorldScrollController : MonoBehaviour
         // no way this atually worked xd
         inputReturning = true;
         inputOffsetProgress = 0f;
-        // inputOffsetProgress = 0f;
-        // inputOffsetActive = false;
-        // inputReturning = false;
-        //
-        // player.transform.position += Vector3.right * -currentPlayerOffset;
-        // ScrollWorld(-currentPlayerOffset);
-        // currentPlayerOffset = 0f;
-      }
-
-      // TODO: create manual checkpoints for scrolling world up and down
-      if (player.jumpHeight > 0f && false) // this wont work
-      {
-        ScrollWorldVertical(-player.jumpHeight);
-        player.jumpHeight = 0f;
-        player.transform.position += Vector3.up * player.jumpHeight;
       }
     }
     else
     {
-      float tolerance = 0.01f;
-      if (
-        player.isTouchingTowerTest
-        && player.justLanded
-        && Mathf.Abs(player.jumpHeight) > tolerance
-        && false // thisw wont work
-      )
-      {
-        ScrollWorldVertical(-player.jumpHeight);
-        // player.transform.position += Vector3.up * player.jumpHeight;
-      }
       ScrollWorld(deltaX);
     }
 
@@ -209,7 +255,7 @@ public class WorldScrollController : MonoBehaviour
     if (inputOffsetActive)
     {
       // Debug.Log("inputOffsetActive");
-      inputOffsetProgress += Time.deltaTime;
+      inputOffsetProgress += Time.fixedDeltaTime;
       float t = Mathf.Clamp01(inputOffsetProgress / inputOffsetDuration);
       // sin curve for animation
       float easedT = Mathf.Sin(t * Mathf.PI * 0.5f);
@@ -250,7 +296,7 @@ public class WorldScrollController : MonoBehaviour
 
   private void RunLookAheadPhase()
   {
-    lookProgress += Time.deltaTime;
+    lookProgress += Time.fixedDeltaTime;
     float t = Mathf.Clamp01(lookProgress / lookDuration);
 
     float deltaX;
@@ -258,12 +304,12 @@ public class WorldScrollController : MonoBehaviour
     {
       // ease out
       float easedT = Mathf.Sin(t * Mathf.PI);
-      deltaX = lookDir * lookDistance * easedT * (Time.deltaTime / lookDuration);
+      deltaX = lookDir * lookDistance * easedT * (Time.fixedDeltaTime / lookDuration);
     }
     else
     {
       // returning at constant speed
-      deltaX = lookDir * lookDistance * (Time.deltaTime / lookDuration);
+      deltaX = lookDir * lookDistance * (Time.fixedDeltaTime / lookDuration);
       deltaX *= -1f; // move back
     }
 
@@ -285,6 +331,43 @@ public class WorldScrollController : MonoBehaviour
     }
   }
 
+  private void TowerMovementVertical()
+  {
+    TowerPlatform p = player.currPlatform; // this is the one you set from capsulecast/overlap
+
+    if (p != lastPlatform)
+    {
+      lastPlatform = p;
+
+      if (p != null)
+      {
+        targetLevelZ = p.GetLevelZ(foreground, baseGround); // platform level relative to base ground
+      }
+      else
+      {
+        targetLevelZ = 0f; // back to base ground level
+      }
+    }
+
+    // Now move only if not already at target:
+    float diff = targetLevelZ - currentLevelZ;
+    if (Mathf.Abs(diff) < 0.001f)
+      return;
+
+    float speed = scrollSpeedVertical;
+    if (!player.isAirborne || player.isGrounded)
+      speed *= 0.2f;
+
+    float step = Mathf.Sign(diff) * speed * Time.fixedDeltaTime;
+    if (Mathf.Abs(step) > Mathf.Abs(diff))
+      step = diff;
+
+    // Move world opposite direction to align the platform down to base level
+    ScrollWorldVertical(-step);
+
+    currentLevelZ += step;
+  }
+
   // parallax
   private void ScrollWorld(float deltaX)
   {
@@ -303,16 +386,18 @@ public class WorldScrollController : MonoBehaviour
 
   private void ScrollWorldVertical(float deltaX)
   {
+    float speed = groundSpeed;
+
     if (foreground != null)
-      foreground.position += Vector3.up * deltaX * groundSpeed;
+      foreground.position += Vector3.up * deltaX * speed;
 
     if (backgroundNear != null)
-      backgroundNear.position += Vector3.up * deltaX * groundSpeed;
+      backgroundNear.position += Vector3.up * deltaX * speed;
 
     if (backgroundFar != null)
-      backgroundFar.position += Vector3.up * deltaX * groundSpeed;
+      backgroundFar.position += Vector3.up * deltaX * speed;
 
     if (backgroundVeryFar != null)
-      backgroundVeryFar.position += Vector3.up * deltaX * groundSpeed;
+      backgroundVeryFar.position += Vector3.up * deltaX * backgroundVeryFarVerticalSpeed;
   }
 }

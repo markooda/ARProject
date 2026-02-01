@@ -8,6 +8,12 @@ TagManager:
   - Tower
   - TowerFull
   - TowerTest
+  - TowerRock
+  - TowerIgnore
+  - Weapon
+  - WeaponEnemy
+  - Enemy
+  - Projectiles
   layers:
   - Default
   - TransparentFX

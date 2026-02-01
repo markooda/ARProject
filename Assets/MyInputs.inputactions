@@ -25,9 +25,45 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "ResetTower",
+                    "name": "ResetGameObjects",
                     "type": "Button",
                     "id": "bfe3be42-bcf1-403f-8665-a810a04a5cdf",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Attack",
+                    "type": "Button",
+                    "id": "629d2a50-167b-41d2-8b18-287b6ed86bbd",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Block",
+                    "type": "Button",
+                    "id": "0620367e-07cf-476e-9b42-e0d3da887187",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "TestGyroscope",
+                    "type": "Value",
+                    "id": "e2913b02-753b-4ba7-befc-80d14b34c9a4",
+                    "expectedControlType": "Vector3",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "CenterPlayer",
+                    "type": "Button",
+                    "id": "ec0643ee-0ab6-46ef-8b4a-d0da9753cc28",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -92,6 +128,17 @@
                 },
                 {
                     "name": "",
+                    "id": "872f21fd-b245-483d-a543-70ef51489804",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "f5c1c1f9-74e6-44ec-95d5-1ed352f2af7b",
                     "path": "<Keyboard>/space",
                     "interactions": "",
@@ -108,7 +155,51 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "ResetTower",
+                    "action": "ResetGameObjects",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "488c6c81-fab9-4351-abae-d9070eb260d5",
+                    "path": "<Keyboard>/v",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Attack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1eca4a3a-4746-4e05-9266-7e1952bcdb98",
+                    "path": "<Keyboard>/b",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Block",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e8834760-9220-4575-80a3-72384b923009",
+                    "path": "<Gyroscope>/angularVelocity",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TestGyroscope",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9876386b-a61a-4ef2-b789-5edfc4fd4e6b",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "CenterPlayer",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

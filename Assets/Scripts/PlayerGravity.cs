@@ -1,7 +1,14 @@
+using System.Collections;
+using TMPro;
 using UnityEngine;
 
 public class PlayerGroundFollower : MonoBehaviour
 {
+  public InputsAPI Inputs { get; private set; }
+
+  [Header("DebugUI")]
+  public TextMeshProUGUI textUi;
+
   [Header("Animator")]
   public Animator animator;
 
@@ -10,6 +17,9 @@ public class PlayerGroundFollower : MonoBehaviour
   public float playerRadius = 0.3f; // capsule cast radius
   public float stepSmooth = 10f; // smoothing for vertical movement
   public float rayLength = 1.0f; // ground check length
+  public float movementSpeed = 3f;
+  private float baseMovementSpeed;
+  private Vector3 startPos;
 
   [Header("Collision Settings")]
   public LayerMask groundLayer;
@@ -23,50 +33,128 @@ public class PlayerGroundFollower : MonoBehaviour
   private float verticalVelocity = 0f;
   public bool isJumping { get; private set; }
 
-  // ok fuck thisc
+  [Header("Airborne Settings")]
+  public float airborneTolerance = 0.2f;
+
+  private float playerY = 0f;
+  private float hitY = 0f;
+
+  public TowerPlatform currPlatform { get; private set; }
+
   public bool isGrounded { get; private set; }
   public bool wasGrounded { get; private set; }
-  public bool justLanded { get; private set; }
+  public bool isAirborne { get; private set; }
 
   public bool isCollidingLeft { get; private set; }
   public bool isCollidingRight { get; private set; }
+  public bool willCollideLeft { get; private set; }
+  public bool willCollideRight { get; private set; }
 
   [Header("World Reference")]
   public Transform world;
 
+  [Header("Game State")]
+  public GameState gameState;
+
+  [Header("Testing")]
   public bool isTouchingTower { get; private set; }
   public bool isTouchingTowerTest { get; private set; }
 
-  public float elevation { get; private set; }
-  public float jumpHeight { get; set; }
+  public float playerY_Begin { get; private set; }
+  public float playerY_End { get; private set; }
+
+  public float lastDeltaY { get; private set; }
 
   public float accumulatedYAirMovement { get; private set; }
 
+  [Header("Attack Settings")]
+  public bool isAttacking;
+  public float attackDelay = 0.5f;
+  public int damage = 50;
+
+  private int prevAttack = 0;
+
+  public int attackId { get; private set; }
+  public bool isBlocking { get; private set; }
+
+  public int hitPoints { get; private set; }
+  private bool isDead;
+
+  // offset from initial position
+
+  private float playerPositionX;
+  public float playerOffsetX { get; private set; }
+
+  public void TakeDamage(int damage)
+  {
+    hitPoints -= damage;
+    Debug.Log("Player hitpoints: " + hitPoints);
+    if (hitPoints <= 0)
+    {
+      Debug.Log("Player dead");
+      isDead = true;
+    }
+  }
+
+  public void Reset()
+  {
+    hitPoints = 100;
+    transform.position = startPos;
+    isDead = false;
+  }
+
   void Start()
   {
-    elevation = transform.position.y;
-    jumpHeight = 0f;
+    playerY_Begin = 0f;
+    playerY_End = 0f;
+    lastDeltaY = 0f;
     isJumping = false;
+    isGrounded = false;
+    wasGrounded = false;
+    isAttacking = false;
+    isBlocking = false;
+    hitPoints = 100;
+    Inputs = new InputsAPI(this);
+    currPlatform = null;
+    playerPositionX = transform.position.x;
+    playerOffsetX = 0f;
+    baseMovementSpeed = movementSpeed;
+    startPos = transform.position;
   }
 
   void FixedUpdate()
   {
+    textUi.text =
+      "isAirborne: "
+      + isAirborne
+      + "\nIsGrounded: "
+      + isGrounded
+      + "\nWasGrounded: "
+      + wasGrounded
+      + "\nPlayerY: "
+      + playerY
+      + "\nHitY: "
+      + hitY
+      + "\nLastDeltaY: "
+      + lastDeltaY
+      + "\nPlayerOffsetX: "
+      + playerOffsetX;
+
+    if (isDead)
+    {
+      gameState.ResetGame();
+      return;
+    }
+
+    // var animationLength = animator.GetCurrentAnimatorStateInfo(0).length;
+    // Debug.Log("animationLength: " + animationLength);
+    // start of the update
+
+    // calculate offset from initial position
+    playerOffsetX = transform.position.x - playerPositionX;
+
     wasGrounded = isGrounded;
-    float oldY = transform.position.y;
 
-    if (!isGrounded)
-    {
-      float deltaY = transform.position.y - oldY;
-      accumulatedYAirMovement += deltaY;
-    }
-
-    if (justLanded)
-    {
-      jumpHeight = accumulatedYAirMovement;
-      accumulatedYAirMovement = 0f;
-    }
-
-    justLanded = false;
     if (isJumping)
     {
       JumpUpdate();
@@ -76,21 +164,21 @@ public class PlayerGroundFollower : MonoBehaviour
       FollowGround();
     }
 
-    // TowerElevationUpdate();
-    // Debug.Log("isTouchingTower: " + isTouchingTower);
+    if (wasGrounded && isAirborne)
+    {
+      playerY_Begin = transform.position.y;
+    }
+
+    if (isGrounded && !wasGrounded)
+    {
+      playerY_End = transform.position.y;
+      lastDeltaY = playerY_End - playerY_Begin;
+    }
 
     CheckWalls();
-
-    // float newY = transform.position.y;
-    // float deltaY = newY - oldY;
-    //
-    // Debug.Log("deltaY: " + deltaY);
-    // Debug.Log("isGrounded: " + isGrounded);
-    //
-    // jumpHeight = deltaY;
-    // elevation = newY;
   }
 
+  // Debug for the capusle collider draws sphere on top and at the bottom
   void OnDrawGizmos()
   {
     if (!Application.isPlaying)
@@ -109,26 +197,24 @@ public class PlayerGroundFollower : MonoBehaviour
   {
     isCollidingLeft = false;
     isCollidingRight = false;
+    willCollideLeft = false;
+    willCollideRight = false;
 
     Vector3 pos = transform.position;
 
-    // Capsule endpoints
     float halfSegment = Mathf.Max(0.0001f, (playerHeight * 0.5f) - playerRadius);
     Vector3 top = pos + Vector3.up * halfSegment;
     Vector3 bottom = pos - Vector3.up * halfSegment;
 
-    // Small buffer to avoid starting inside geometry
     const float skinWidth = 0.05f;
 
-    // Move capsule slightly backward for cast start
-    Vector3 startOffset = Vector3.zero; // horizontal check doesn't require nudge usually
+    Vector3 startOffset = Vector3.zero;
 
     // LEFT direction check
     Vector3 dirLeft = Vector3.left;
     Collider[] overlapsLeft = Physics.OverlapCapsule(top, bottom, playerRadius, wallLayer);
     foreach (var col in overlapsLeft)
     {
-      // Check if collider is to the left
       if (col.bounds.max.x >= pos.x - playerRadius)
       {
         isCollidingLeft = true;
@@ -152,6 +238,22 @@ public class PlayerGroundFollower : MonoBehaviour
       {
         isCollidingLeft = true;
         Debug.DrawLine(pos, pos + dirLeft * wallCheckDistance, Color.red);
+      }
+
+      if (
+        Physics.CapsuleCast(
+          top,
+          bottom,
+          playerRadius,
+          dirLeft,
+          out RaycastHit hitLeft2,
+          wallCheckDistance + 0.25f,
+          wallLayer
+        )
+      )
+      {
+        willCollideLeft = true;
+        Debug.Log("Will collide left, should stop scrolling");
       }
     }
 
@@ -185,8 +287,27 @@ public class PlayerGroundFollower : MonoBehaviour
         isCollidingRight = true;
         Debug.DrawLine(pos, pos + dirRight * wallCheckDistance, Color.blue);
       }
+
+      if (
+        Physics.CapsuleCast(
+          top,
+          bottom,
+          playerRadius,
+          dirRight,
+          out RaycastHit hitRight2,
+          wallCheckDistance + 0.25f,
+          wallLayer
+        )
+      )
+      {
+        willCollideRight = true;
+        Debug.Log("Will collide right, should stop scrolling");
+      }
     }
 
+    // This is not good because it does not offset the world
+    // Player goes out of center
+    // solved by calculating player offset and unscrolling the world in world scroll controller
     if (isCollidingLeft)
     {
       transform.position += Vector3.right * (skinWidth + 0.01f);
@@ -201,34 +322,21 @@ public class PlayerGroundFollower : MonoBehaviour
   private void FollowGround()
   {
     Vector3 pos = transform.position;
-
-    // Direction that represents 'down' in your side view
     Vector3 castDir = Vector3.down;
-
-    // Small buffer to avoid starting the cast *inside* geometry
     const float skinWidth = 0.05f;
-
-    // Compute the half distance between the sphere centers (line segment length)
-    // for Unity capsule APIs the two points are the centers of the end-spheres,
-    // so halfSegment = (playerHeight/2) - playerRadius
     float halfSegment = Mathf.Max(0.0001f, (playerHeight * 0.5f) - playerRadius);
 
-    // Points at the centers of the capsule end-spheres (before offset)
     Vector3 capsuleTop = pos + Vector3.up * halfSegment;
     Vector3 capsuleBottom = pos - Vector3.up * halfSegment;
 
-    // Offset the capsule *opposite* the cast direction so the sweep starts slightly above
-    // (castDir is back, so -castDir is forward)
     Vector3 startOffset = -castDir.normalized * skinWidth;
     capsuleTop += startOffset;
     capsuleBottom += startOffset;
 
-    // Sweep distance: how far down we'll check. include skinWidth to account for offset
     float maxDistance = rayLength + skinWidth;
 
     Debug.DrawLine(capsuleTop, capsuleBottom, Color.yellow);
 
-    // First: handle the overlapping case (capsule currently intersecting ground)
     Collider[] overlaps = Physics.OverlapCapsule(
       capsuleTop,
       capsuleBottom,
@@ -236,27 +344,30 @@ public class PlayerGroundFollower : MonoBehaviour
       groundLayer
     );
 
+    currPlatform = null;
+
     if (overlaps != null && overlaps.Length > 0)
     {
-      // We're already intersecting ground — nudge the player up a bit so we are above it.
-      // This prevents the sweep from skipping the collider.
-      // Debug.Log("Colliding due to overlaps");
       transform.position += Vector3.up * (skinWidth + 0.01f);
+      isAirborne = false;
       isGrounded = true;
-      isJumping = false;
 
-      if (!wasGrounded && isGrounded)
-      {
-        // We just transitioned AIR → GROUND
-        justLanded = true;
-
-        // Compute vertical delta, good for world-scrolling
-        jumpHeight = transform.position.y - elevation;
-        elevation = transform.position.y;
-      }
       // tower is a special case for world controller
       foreach (var col in overlaps)
       {
+        Debug.Log(
+          $"Hit collider: {col.name} | parent: {col.transform.parent?.name} | root: {col.transform.root.name}"
+        );
+        var platform =
+          col.GetComponent<TowerPlatform>()
+          ?? col.GetComponentInParent<TowerPlatform>()
+          ?? col.GetComponentInChildren<TowerPlatform>();
+        // var platform = col.gameObject.GetComponent<TowerPlatform>();
+        if (platform != null)
+        {
+          currPlatform = platform;
+        }
+
         if (col.gameObject.tag == "TowerTest")
         {
           isTouchingTowerTest = true;
@@ -291,6 +402,16 @@ public class PlayerGroundFollower : MonoBehaviour
       )
     )
     {
+      var platform =
+        hit.transform.GetComponent<TowerPlatform>()
+        ?? hit.transform.GetComponentInParent<TowerPlatform>()
+        ?? hit.transform.GetComponentInChildren<TowerPlatform>();
+
+      if (platform != null)
+      {
+        currPlatform = platform;
+      }
+
       if (hit.transform.tag == "Tower")
       {
         isTouchingTower = true;
@@ -308,11 +429,21 @@ public class PlayerGroundFollower : MonoBehaviour
       {
         isTouchingTowerTest = false;
       }
-      // Debug.Log("Colliding due to capsulecast");
-      // hit.distance is from the *start offset* — compute ground Z
-      // hit.point is valid; we want the player's bottom to sit at hit.point.z
-      isGrounded = true;
-      isJumping = false;
+
+      playerY = transform.position.y;
+      hitY = hit.point.y;
+
+      if (transform.position.y - hit.point.y > airborneTolerance)
+      {
+        isGrounded = false;
+        isAirborne = true;
+      }
+      else
+      {
+        isGrounded = true;
+        isAirborne = false;
+      }
+
       float targetY = hit.point.y + (playerHeight / 2f);
 
       Vector3 newPos = pos;
@@ -333,7 +464,7 @@ public class PlayerGroundFollower : MonoBehaviour
     {
       animator.SetBool("isJumping", true); // handle this here so that i can check if player is not already mid air
       isJumping = true;
-      isGrounded = false;
+      isAirborne = true;
       verticalVelocity = jumpForce;
       Debug.Log("Jump enabled");
     }
@@ -342,26 +473,18 @@ public class PlayerGroundFollower : MonoBehaviour
   // parabolic jump
   public void JumpUpdate()
   {
-    // Apply gravity
     verticalVelocity -= gravity * Time.fixedDeltaTime;
+    isGrounded = false;
 
-    if (verticalVelocity > 0f)
-    {
-      isGrounded = false;
-    }
-
-    // Move the player
     Vector3 pos = transform.position;
     pos.y += verticalVelocity * Time.fixedDeltaTime;
     transform.position = pos;
 
-    // Raycast from player bottom
     Vector3 rayStart = transform.position - Vector3.up * (playerHeight / 2 - 0.05f);
-
-    // Only check landing when falling
     Vector3 capsuleBottom = transform.position - Vector3.up * (playerHeight / 2);
     Vector3 capsuleTop = transform.position + Vector3.up * (playerHeight / 2);
 
+    // just landed
     if (
       verticalVelocity <= 0
       && Physics.CapsuleCast(
@@ -381,35 +504,127 @@ public class PlayerGroundFollower : MonoBehaviour
 
       verticalVelocity = 0f;
       isJumping = false;
+      isAirborne = false;
       isGrounded = true;
+
       animator.SetBool("isJumping", false);
-
-      if (!wasGrounded && isGrounded)
-      {
-        // We just transitioned AIR → GROUND
-        justLanded = true;
-
-        // Compute vertical delta, good for world-scrolling
-        jumpHeight = transform.position.y - elevation;
-        elevation = transform.position.y;
-      }
     }
   }
 
-  // public void TowerElevationUpdate()
-  // {
-  //   Debug.Log("isTouchingTowerTest: " + isTouchingTowerTest);
-  //   Debug.Log("jumpHeight: " + (transform.position.y - elevation));
-  //   Debug.Log("elevation: " + elevation);
-  //   Debug.Log("transform.position.y: " + transform.position.y);
-  //   if (true)
-  //   {
-  //     // float playerY = transform.position.y;
-  //     // float groundY = playerY + playerHeight / 2;
-  //     float groundY = transform.position.y;
-  //     jumpHeight = groundY - elevation;
-  //     Debug.Log("jumpHeight: " + jumpHeight);
-  //     elevation = groundY;
-  //   }
-  // }
+  private void PerformAttack()
+  {
+    IEnumerator ResetAttack()
+    {
+      yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName("Attack"));
+
+      var state = animator.GetCurrentAnimatorStateInfo(0);
+      Debug.Log("Attack animation duration: " + state.length / state.speed);
+
+      yield return new WaitForSeconds(state.length / state.speed);
+
+      isAttacking = false;
+    }
+
+    if (isAttacking)
+      return;
+
+    Debug.Log("attack performed");
+    int attackType;
+    do
+    {
+      attackType = Random.Range(0, 3);
+    } while (attackType == prevAttack);
+    prevAttack = attackType;
+    animator.SetFloat("attackType", attackType);
+    animator.SetTrigger("attack");
+    isAttacking = true;
+    attackId++;
+
+    AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
+
+    StartCoroutine(ResetAttack());
+  }
+
+  private void StartRunning(float speed)
+  {
+    animator.SetBool("isRunning", true);
+
+    if (speed > 0)
+    {
+      transform.localRotation = Quaternion.Euler(0f, 0f, 0f);
+    }
+    else if (speed < 0)
+    {
+      transform.localRotation = Quaternion.Euler(0f, 0f, 180f);
+    }
+  }
+
+  private void StopRunning()
+  {
+    animator.SetBool("isRunning", false);
+    animator.SetBool("isRunningFast", false);
+  }
+
+  private void PerformBlock()
+  {
+    IEnumerator ResetBlock()
+    {
+      yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName("Block"));
+
+      var state = animator.GetCurrentAnimatorStateInfo(0);
+      Debug.Log("Block animation duration: " + state.length / state.speed);
+
+      yield return new WaitForSeconds(state.length / state.speed);
+
+      isBlocking = false;
+    }
+
+    Debug.Log("block performed");
+    animator.SetTrigger("block");
+    isBlocking = true;
+
+    StartCoroutine(ResetBlock());
+  }
+
+  public bool RestoreHealth(int amount)
+  {
+    if (hitPoints == 100)
+      return false;
+
+    hitPoints = Mathf.Clamp(hitPoints + amount, 0, 100);
+    return true;
+  }
+
+  public void IncreaseDamage(int amount)
+  {
+    damage += amount;
+  }
+
+  public void IncreaseMovementSpeed(float amount, int duration)
+  {
+    IEnumerator IncreaseMSRoutine()
+    {
+      movementSpeed += amount;
+      yield return new WaitForSeconds(duration);
+      movementSpeed -= amount;
+    }
+    StartCoroutine(IncreaseMSRoutine());
+  }
+
+  public sealed class InputsAPI
+  {
+    private readonly PlayerGroundFollower p;
+
+    internal InputsAPI(PlayerGroundFollower player) => p = player;
+
+    public void PerformAttack() => p.PerformAttack();
+
+    public void StartRunning(float speed) => p.StartRunning(speed);
+
+    public void StopRunning() => p.StopRunning();
+
+    public void PerformBlock() => p.PerformBlock();
+
+    public void PerformJump() => p.Jump();
+  }
 }
