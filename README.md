@@ -17,6 +17,12 @@ Left bottom circle - jump
 Left upper circle - Attack
 Left upper right circle - Block
 
+## Devices
+Works on pc & android devices. Requires camera which needs to be aimed at the AR Target.
+
+<img width="289" height="263" alt="image" src="https://github.com/user-attachments/assets/ca6a96ab-0458-44fd-b7fc-a49fd71d41b5" />
+
+
 
 
 
